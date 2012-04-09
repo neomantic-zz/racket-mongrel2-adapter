@@ -1,0 +1,11 @@
+#lang racket
+
+(require "../mongrel2.rkt")
+
+(require (planet zitterbewegung/uuid-v4:2:0/uuid-v4))
+
+(start-handler
+ (string->bytes/utf-8 (symbol->string (make-uuid)))
+ "tcp://*:9996"
+ (string->bytes/utf-8 (symbol->string (make-uuid)))
+ "tcp://localhost:9997")
