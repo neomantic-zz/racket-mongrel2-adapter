@@ -5,43 +5,56 @@
   (require (prefix-in zmq: (planet jaymccarthy/zeromq:2:1/zmq)))
   (require (prefix-in tnstr: (planet gerard/tnetstrings:1:0)))
 
-  (provide start-handler)
+  (provide mongrel2-automata)
   (provide parse-mongrel2-msg-part)
   (provide read-mongrel2-header-msg)
 
-  (define (start-handler request-endpoint response-endpoint response-uuid)
+  (define (mongrel2-automata request-endpoint response-endpoint response-uuid)
     (let* ([context (zmq:context 1)]
-           [request-socket (zmq:socket context 'PULL)])
-      (display "Connecting incoming\n")
+           [request-socket (zmq:socket context 'PULL)]
+           [response-socket (zmq:socket context 'PUB)])
+      (display "Connecting Sockets\n")
       (zmq:socket-connect! request-socket request-endpoint)
-      (let ([response-socket (zmq:socket context 'PUB)])
-        (display "Connecting outgoing\n")
-        (zmq:socket-connect! response-socket response-endpoint)
-        (zmq:set-socket-option! response-socket 'IDENTITY response-uuid)
-        (display "Listening\n")
-        (let listen ([listening #t])
-          (if (eqv? running #f)
-              (zmq:socket-close! request-socket)
-              (zmq:socket-close! response-socket)
-              (error 'start-handler "aborting")
-              (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
-                (display "Success\n")
-                (display request-msg-bytes)
-                (newline)
-                (send-response response-socket request-msg-bytes)
-                (listen #t)))))))
-
+      (zmq:socket-connect! response-socket response-endpoint)
+      (zmq:set-socket-option! response-socket 'IDENTITY response-uuid)
+      (letrec ([listening (lambda (listen)
+                            (display "Listening\n")
+                            (let listener ([listening listen])
+                              (if (eqv? listening #f)
+                                  (stop)
+                                  (listener (received)))))]
+               [received (lambda ()
+                           (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
+                             (display "Recieved message\n")
+                             (respond request-msg-bytes)
+                             #t))] ;;if kill, kill, else respod
+               [respond (lambda (request-msg-bytes)
+                          (let ([response #"blah"])
+                            (display "Sending message\n")
+                            (send-response response-socket request-msg-bytes)
+                            (sent #t)))]
+               [sent (lambda (responded)
+                       (display "Message Sent ")
+                       (if (eqv? responded #t)
+                           (display "Successfully\n")
+                           (display "Failed\n")))]
+               [stop (lambda ()
+                       (display "Stopping\n")
+                       (zmq:socket-close! request-socket)
+                       (zmq:socket-close! response-socket)
+                       (stopped))]
+               [stopped (lambda ()
+                          (display "Mongrel has stopped"))])
+        (listening #t))))
+  
   ;;TODO Handle kill message
-
   ;;Not doing anything with the body
   ;;Not doing anything with the header
   
   (define (send-response socket request-msg-bytes)
     (let ([mongrel2-header-list (read-mongrel2-header-msg
                                  (open-input-bytes request-msg-bytes))])
-      (display "sending on socket\n")
-      (zmq:socket-send! socket (make-mongrel2-msg mongrel2-header-list))
-      (display "response sent\n")))
+      (zmq:socket-send! socket (make-mongrel2-msg mongrel2-header-list))))
 
   (define (make-mongrel2-msg mongrel2-header-list)
     (bytes-append
