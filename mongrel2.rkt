@@ -9,38 +9,38 @@
   (provide parse-mongrel2-msg-part)
   (provide read-mongrel2-header-msg)
 
-  (define (mongrel2-automata request-endpoint response-endpoint response-uuid [request-uuid #""])
+  (define (mongrel2-automata request-endpoint response-endpoint response-uuid [request-uuid #""] [verbose #f])
     (let* ([context (zmq:context 1)]
            [request-socket (mongler2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)]
-           [response-socket (mongler2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)])
+           [response-socket (mongler2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)]
+           [print-state (log-state verbose)])
       (letrec ([listening (lambda (listen)
-                            (display "Listening\n")
+                            (print-state "Listening")
                             (let listener ([listening listen])
                               (if (eqv? listening #f)
                                   (stop)
                                   (listener (received)))))]
                [received (lambda ()
                            (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
-                             (display "Recieved message\n")
+                             (print-state "Recieved message")
                              (respond request-msg-bytes)
-                             #t))] ;;if kill, kill, else respod
+                             #t))]
                [respond (lambda (request-msg-bytes)
                           (let ([response #"blah"])
-                            (display "Sending message\n")
+                            (print-state "Sending message")
                             (send-response response-socket request-msg-bytes)
                             (sent #t)))]
                [sent (lambda (responded)
-                       (display "Message Sent ")
                        (if (eqv? responded #t)
-                           (display "Successfully\n")
-                           (display "Failed\n")))]
+                           (print-state "Message Sent")
+                           (error 'mongrel2 "message failed to be sent")))]
                [stop (lambda ()
-                       (display "Stopping\n")
+                       (print-state "Stopping")
                        (zmq:socket-close! request-socket)
                        (zmq:socket-close! response-socket)
                        (stopped))]
                [stopped (lambda ()
-                          (display "Mongrel has stopped"))])
+                          (print-state "Mongrel2 Handler has stopped"))])
         (listening #t))))
 
   (define (mongler2-zmq-socket-connect! context type endpoint uuid)
@@ -54,8 +54,13 @@
         (zmq:set-socket-option! socket 'IDENTITY uuid)])
       socket))
 
+  (define (log-state enable)
+    (lambda (message)
+      (if (eq? enable #t)
+          (begin (display message) (newline))
+          #f)))
+
   
-  ;;TODO Handle kill message
   ;;Not doing anything with the body
   ;;Not doing anything with the header
   
