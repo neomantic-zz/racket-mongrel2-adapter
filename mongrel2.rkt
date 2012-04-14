@@ -11,14 +11,8 @@
 
   (define (mongrel2-automata request-endpoint response-endpoint response-uuid [request-uuid #""])
     (let* ([context (zmq:context 1)]
-           [request-socket (zmq:socket context 'PULL)]
-           [response-socket (zmq:socket context 'PUB)])
-      (display "Connecting Sockets\n")
-      (zmq:socket-connect! request-socket request-endpoint)
-      (zmq:socket-connect! response-socket response-endpoint)
-      (zmq:set-socket-option! response-socket 'IDENTITY response-uuid)
-      (if (> (bytes-length request-uuid) 0)
-          (zmq:set-socket-option! request-socket 'IDENTITY request-uuid))
+           [request-socket (mongler2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)]
+           [response-socket (mongler2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)])
       (letrec ([listening (lambda (listen)
                             (display "Listening\n")
                             (let listener ([listening listen])
@@ -48,6 +42,18 @@
                [stopped (lambda ()
                           (display "Mongrel has stopped"))])
         (listening #t))))
+
+  (define (mongler2-zmq-socket-connect! context type endpoint uuid)
+    (let ([socket (zmq:socket context type)]
+          [uuid-is-empty (eqv? (bytes-length uuid) 0)])
+      (zmq:socket-connect! socket endpoint)
+      (cond
+       [(and (eqv? type 'PUB) uuid-is-empty)
+        (error 'mongrel2 "A response uuid is require")]
+       [(eq? uuid-is-empty #f)
+        (zmq:set-socket-option! socket 'IDENTITY uuid)])
+      socket))
+
   
   ;;TODO Handle kill message
   ;;Not doing anything with the body
