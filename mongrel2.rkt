@@ -95,7 +95,7 @@
                              #t))]
                [respond (lambda (request-msg-bytes)
                           (print-state "Sending message")
-                          (send-response response-socket request-msg-bytes handler)
+                          (send-m2-response response-socket request-msg-bytes handler)
                           (sent #t))]
                [sent (lambda (responded)
                        (if (eqv? responded #t)
@@ -116,13 +116,13 @@
           (begin (display message) (newline))
           #f)))
   
-  (define (send-response socket request-msg-bytes handler)
+  (define (send-m2-response socket request-msg-bytes handler)
     (call-with-input-bytes
      request-msg-bytes
      (lambda (port)
        (let* ([headers-list (read-m2-header-msg port)]
-	      [headers (read-http-headers port)]
-	      [request-body (read-http-body port)]
+	      [headers (read-m2-http-headers port)]
+	      [request-body (read-m2-http-body port)]
 	      [response-list (handler headers request-body)])
 	 (zmq:socket-send! socket (make-m2-msg headers-list response-list))))))
 
@@ -158,9 +158,9 @@
               source-id-bytes
               request-path-bytes)))))
 
-  (define (read-http-headers port)
+  (define (read-m2-http-headers port)
     (tnstr:value->bytes/tnetstring (tnparser:read-tnetstring-bytes port)))
   
-  (define (read-http-body port)
+  (define (read-m2-http-body port)
     (tnstr:value->bytes/tnetstring (tnparser:read-tnetstring-bytes port)))
   )
