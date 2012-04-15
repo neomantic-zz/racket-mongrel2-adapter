@@ -40,6 +40,8 @@ The source code is located at http://www.github.com/neomantic/mongrel2-racket-ad
 # Issues and feature requests
 Please use the issue tracker supplied by github for this repository.
 
+# History
+
 # License
 This source code is licensed under the GPL v3. See the LICENSE document included
 with source code for the full terms of use.
