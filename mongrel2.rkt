@@ -4,12 +4,13 @@
   (require racket/port)
   (require (prefix-in zmq: (planet jaymccarthy/zeromq:2:1/zmq)))
   (require (prefix-in tnstr: (planet gerard/tnetstrings:1:0)))
+  (require (prefix-in tnparser: "tnetstring-parser.rkt"))
 
   (provide mongrel2-automata)
   (provide parse-mongrel2-msg-part)
   (provide read-mongrel2-header-msg)
 
-  (define (mongrel2-automata request-endpoint response-endpoint response-uuid [request-uuid #""] [verbose #f])
+  (define (mongrel2-automata request-endpoint response-endpoint response-uuid handler [request-uuid #""] [verbose #f])
     (let* ([context (zmq:context 1)]
            [request-socket (mongler2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)]
            [response-socket (mongler2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)]
@@ -26,10 +27,9 @@
                              (respond request-msg-bytes)
                              #t))]
                [respond (lambda (request-msg-bytes)
-                          (let ([response #"blah"])
-                            (print-state "Sending message")
-                            (send-response response-socket request-msg-bytes)
-                            (sent #t)))]
+			  (print-state "Sending message")
+			  (send-response response-socket request-msg-bytes handler)
+			  (sent #t))]
                [sent (lambda (responded)
                        (if (eqv? responded #t)
                            (print-state "Message Sent")
@@ -59,23 +59,24 @@
       (if (eq? enable #t)
           (begin (display message) (newline))
           #f)))
-
   
-  ;;Not doing anything with the body
-  ;;Not doing anything with the header
-  
-  (define (send-response socket request-msg-bytes)
-    (let ([mongrel2-header-list (read-mongrel2-header-msg
-                                 (open-input-bytes request-msg-bytes))])
-      (zmq:socket-send! socket (make-mongrel2-msg mongrel2-header-list))))
+  (define (send-response socket request-msg-bytes handler)
+    (call-with-input-bytes
+     request-msg-bytes
+     (lambda (port)
+       (let* ([headers-list (read-mongrel2-header-msg port)]
+	      [headers (read-http-headers port)]
+	      [request-body (read-http-body port)]
+	      [response-list (handler headers request-body)])
+	 (zmq:socket-send! socket (make-mongrel2-msg headers-list response-list))))))
 
-  (define (make-mongrel2-msg mongrel2-header-list)
+  (define (make-mongrel2-msg mongrel2-header-list response)
     (bytes-append
      (car mongrel2-header-list)
      #" "
      (tnstr:value->bytes/tnetstring (car (cdr mongrel2-header-list)))
-     #" HTTP/1.1 200 OK\r\nContent-Type: text/html;charset=utf-8\r\nContent-Length: 5\r\n\r\nHello\n"))
-
+     response))
+  
   (define (parse-mongrel2-msg-part port)
     (let loop ([msg-fragment #""])
       (let ([peek (peek-bytes 1 0 port)])
@@ -98,12 +99,11 @@
        (else
         (list mongrel2-uuid-bytes
               source-id-bytes
-              (bytes->string/utf-8 request-path-bytes))))))
+              request-path-bytes)))))
 
-)
-
-   
+  (define (read-http-headers port)
+    (tnstr:value->bytes/tnetstring (tnparser:read-tnetstring-bytes port)))
   
-
-
-
+  (define (read-http-body port)
+    (tnstr:value->bytes/tnetstring (tnparser:read-tnetstring-bytes port)))
+)
