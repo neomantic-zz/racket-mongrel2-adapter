@@ -55,7 +55,6 @@ A Racket mongrel2 handler MUST do the following per the API:
 * Return a response as single Racket byte-string containing the response headers and the response.
   - For the browser, to correctly process this response, the headers and response in the byte string must be valid
 
-
 # Source code
 The source code is located at http://www.github.com/neomantic/mongrel2-racket-adapter
 
