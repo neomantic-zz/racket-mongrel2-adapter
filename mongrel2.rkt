@@ -52,30 +52,33 @@
                                 #:send-uuid response-uuid
                                 #:handler handler
                                 #:verbose [verbose #f]
-                                #:recv-uuid [request-uuid #""])
-    
-    (call-with-m2-sockets request-endpoint
-                          response-endpoint
-                          (string->bytes/utf-8 response-uuid)
-                          (string->bytes/utf-8 request-uuid)
-                          (lambda (request-socket response-socket)
-                            (m2-automata
-                             request-socket
-                             response-socket
-                             handler
-                             verbose))))
-
-  (define (call-with-zmq-context proc [number-of-threads 1])
-    (proc (zmq:context number-of-threads)))
+                                #:recv-uuid [request-uuid ""])
+    (call-with-zmq-sockets request-endpoint
+                           response-endpoint
+                           response-uuid
+                           request-uuid
+                           (lambda (request-socket response-socket)
+                             (m2-automata
+                              request-socket
+                              response-socket
+                              handler
+                              verbose))))
   
-  (define (call-with-m2-sockets request-endpoint response-endpoint response-uuid request-uuid proc) 
-    (call-with-zmq-context (lambda (context)
-                             (call-with-values
-                                 (lambda ()
-                                   (values
-                                    (m2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)
-                                    (m2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)))
-                               proc))))
+  (define (call-with-zmq-sockets request-endpoint response-endpoint response-uuid request-uuid proc)
+    (let ([context (zmq:context 1)])
+      (call-with-values (lambda ()
+                          (if (eq? (string-length response-uuid) 0)
+                              (error 'mongrel2-adapter "aborting: Failed to supplied the require mongrel2 response uuid")
+                              (let ([make-connect-socket (lambda (type endpoint uuid)
+                                                           (let ([socket (zmq:socket context type)])
+                                                             (zmq:socket-connect! socket endpoint)
+                                                             (when (> (string-length uuid) 0)
+                                                               (zmq:set-socket-option! socket 'IDENTITY (string->bytes/latin-1 uuid)))
+                                                             socket))])
+                                (values
+                                 (make-connect-socket 'PULL request-endpoint request-uuid)
+                                 (make-connect-socket 'PUB response-endpoint response-uuid)))))
+        proc)))
   
   (define (m2-automata request-socket response-socket handler verbose)
     (let ([print-state (log-state verbose)])
@@ -106,18 +109,7 @@
                [stopped (lambda ()
                           (print-state "Mongrel2 Handler has stopped"))])
         (listening #t))))
-
-  (define (m2-zmq-socket-connect! context type endpoint uuid)
-    (let ([socket (zmq:socket context type)]
-          [uuid-is-empty (eqv? (bytes-length uuid) 0)])
-      (zmq:socket-connect! socket endpoint)
-      (cond
-       [(and (eqv? type 'PUB) uuid-is-empty)
-        (error 'm2 "A response uuid is required")]
-       [(eq? uuid-is-empty #f)
-        (zmq:set-socket-option! socket 'IDENTITY uuid)])
-      socket))
-
+  
   (define (log-state enable)
     (lambda (message)
       (if (eq? enable #t)
