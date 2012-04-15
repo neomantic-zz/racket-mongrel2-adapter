@@ -106,7 +106,8 @@
                   (read-bytes 1 port);;increment past the next space
                   msg-fragment)
                 (loop (bytes-append msg-fragment (read-bytes 1 port))))))))
-  
+
+  ;; make sure mongrel2 sent the correct information
   (define (read-mongrel2-header-msg port)
     (let* ([mongrel2-uuid-bytes (parse-mongrel2-msg-part port)]
            [source-id-bytes (parse-mongrel2-msg-part port)]
