@@ -47,6 +47,15 @@ and much faster than using JSON.
 An example is supplied in the example directory.  It simply setups
 a mongrel2 handler and receives the headers and body, and sends a valid http byte string.
 
+# Handler Requirements
+A Racket mongrel2 handler MUST do the following per the API:
+* Accept 2 parameters.  
+  - The first - a Racket list datatype of headers. 
+  - The second - a string containing the body of the request if it is present
+* Return a response as single Racket byte-string containing the response headers and the response.
+  - For the browser, to correctly process this response, the headers and response in the byte string must be valid
+
+
 # Source code
 The source code is located at http://www.github.com/neomantic/mongrel2-racket-adapter
 
