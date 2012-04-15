@@ -7,7 +7,7 @@
 (run-mongrel2-handler
  #:recv-spec "tcp://127.0.0.1:9997"
  #:send-spec "tcp://127.0.0.1:9996"
- #:send-uuid (string->bytes/utf-8 (symbol->string (make-uuid)))
+ #:send-uuid (symbol->string (make-uuid))
  #:handler (lambda (headers request-body)
             (display headers)
             (display request-body)

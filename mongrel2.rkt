@@ -17,8 +17,8 @@
     
     (call-with-m2-sockets request-endpoint
                           response-endpoint
-                          response-uuid
-                          request-uuid
+                          (string->bytes/utf-8 response-uuid)
+                          (string->bytes/utf-8 request-uuid)
                           (lambda (request-socket response-socket)
                             (m2-automata
                              request-socket
