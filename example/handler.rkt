@@ -8,8 +8,8 @@
  #:recv-spec "tcp://127.0.0.1:9997"
  #:send-spec "tcp://127.0.0.1:9996"
  #:send-uuid (symbol->string (make-uuid))
- #:handler (lambda (headers request-body)
-            (display headers)
-            (display request-body)
+ #:handler (lambda (mongrel2-request-bytes)
+             (display mongrel2-request-bytes)
+             (newline)
             #" HTTP/1.1 200 OK\r\nContent-Type: text/html;charset=utf-8\r\nContent-Length: 5\r\n\r\nHello\n")
  #:verbose #t)

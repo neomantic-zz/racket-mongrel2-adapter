@@ -29,9 +29,8 @@
 ;;  #:recv-spec "tcp://127.0.0.1:9997"
 ;;  #:send-spec "tcp://127.0.0.1:9996"
 ;;  #:send-uuid (symbol->string (make-uuid))
-;;  #:handler (lambda (headers request-body)
-;;             (display headers)
-;;             (display request-body)
+;;  #:handler (lambda (mongrel2-bytes-msg)
+;;             (display mongrel2-msg)
 ;;             #" HTTP/1.1 200 OK\r\nContent-Type: text/html;charset=utf-8\r\nContent-Length: 5\r\n\r\nHello\n")
 ;;  #:verbose #t)
 ;;
@@ -43,7 +42,6 @@
   (require racket/port)
   (require (prefix-in zmq: (planet jaymccarthy/zeromq:2:1/zmq)))
   (require (prefix-in tnstr: (planet gerard/tnetstrings:1:0)))
-  (require (prefix-in tnparser: "tnetstring-parser.rkt"))
 
   (provide run-mongrel2-handler)
 
@@ -120,18 +118,17 @@
     (call-with-input-bytes
      request-msg-bytes
      (lambda (port)
-       (let* ([headers-list (read-m2-header-msg port)]
-	      [headers (read-m2-http-headers port)]
-	      [request-body (read-m2-http-body port)]
-	      [response-list (handler headers request-body)])
-	 (zmq:socket-send! socket (make-m2-msg headers-list response-list))))))
+       (zmq:socket-send! socket
+                         (make-m2-msg
+                          (read-m2-header-msg port)
+                          (handler(port->bytes port)))))))
 
-  (define (make-m2-msg m2-header-list response)
+  (define (make-m2-msg m2-header-list response-bytes)
     (bytes-append
      (car m2-header-list)
      #" "
      (tnstr:value->bytes/tnetstring (car (cdr m2-header-list)))
-     response))
+     response-bytes))
   
   (define (parse-m2-msg-part port)
     (let loop ([msg-fragment #""])
@@ -157,10 +154,4 @@
         (list m2-uuid-bytes
               source-id-bytes
               request-path-bytes)))))
-
-  (define (read-m2-http-headers port)
-    (tnstr:value->bytes/tnetstring (tnparser:read-tnetstring-bytes port)))
-  
-  (define (read-m2-http-body port)
-    (tnstr:value->bytes/tnetstring (tnparser:read-tnetstring-bytes port)))
   )

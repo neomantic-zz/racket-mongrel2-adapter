@@ -8,7 +8,7 @@ facilate communication between mongrel2 and a mongrel2 handler passed as
 lambda expression to the adapter.  It does not attempt to craft or manipulate
 either the http request/response headers or the http request/response body between
 the handler and the adapter.  Processing a http request and creating a valid
-http response is delegated to and the sole responsibility of the handler.
+http response is delegated to and the sole responsibility a mongrel2 handler.
 
 # Implementation Design
 Compared to other examples of the mongrel2 adapter, this implementation appears
@@ -23,35 +23,14 @@ to and handling mongrel2 requests and responses more explicit.
 * (require (planet jaymccarthy/zeromq:2:1/zmq)))
 * (require (planet gerard/tnetstrings:1:0)))
 
-# Limitations
-At present, the adapter internally only handles incoming and outgoing
-requests to mongrel2 using the tagged netstring protocol. It does not
-handle the original and default mongrel2 JSON protocol.  As a consequence,
-mongrel2 handlers settings must specify 'tnetstring' as its protocol.
-
-Here is a example of a handler setting up a mongrel2 conf file:
-
-`
-racket_handler = Handler(send_spec='tcp://127.0.0.1:9997',
- 	                 send_ident='5f84aea8-8291-11e1-a0a7-00261824db2f',
-               		 recv_spec='tcp://127.0.0.1:9996',
-			 recv_ident=''
-			 protocol='tnetstring')
-`
-
-JSON support may be added in the future. tnetstring support is currently supported
-because expanding tnetstrings into Racket datatypes is much simpler, less error prone,
-and much faster than using JSON.
-
 # Example
 An example is supplied in the example directory.  It simply setups
 a mongrel2 handler and receives the headers and body, and sends a valid http byte string.
 
 # Handler Requirements
 A Racket mongrel2 handler MUST do the following per the API:
-* Accept 2 parameters.  
-  - The first - a Racket list datatype of headers. 
-  - The second - a string containing the body of the request if it is present
+* Accept 1 parameters - a bytestring containing either the JSON representation of the request
+  or the tnetstring respresention, depending upon how the mongrel2 server has been setup.
 * Return a response as single Racket byte-string containing the response headers and the response.
   - For the browser, to correctly process this response, the headers and response in the byte string must be valid
 
