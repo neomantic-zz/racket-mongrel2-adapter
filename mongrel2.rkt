@@ -8,7 +8,13 @@
 
   (provide run-mongrel2-handler)
 
-  (define (run-mongrel2-handler request-endpoint response-endpoint response-uuid handler [verbose #f] [request-uuid #""])
+  (define (run-mongrel2-handler #:recv-endpoint request-endpoint
+                                #:send-endpoint response-endpoint
+                                #:send-uuid response-uuid
+                                #:handler handler
+                                #:verbose [verbose #f]
+                                #:recv-uuid [request-uuid #""])
+    
     (call-with-m2-sockets request-endpoint
                           response-endpoint
                           response-uuid
