@@ -18,7 +18,7 @@
                                    request-socket
                                    response-socket
                                    handler
-                                   (log-state verbose)))))
+                                   verbose))))
 
   (define (call-with-zmq-context proc [number-of-threads 1])
     (proc (zmq:context number-of-threads)))
@@ -32,34 +32,35 @@
                                     (mongrel2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)))
                                proc))))
   
-    (define (mongrel2-automata request-socket response-socket handler [print-state (log-state #f)])
-    (letrec ([listening (lambda (listen)
-                          (print-state "Listening")
-                          (let listener ([listening listen])
-                            (if (eqv? listening #f)
-                                (stop)
-                                (listener (received)))))]
-             [received (lambda ()
-                         (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
-                           (print-state "Recieved message")
-                           (respond request-msg-bytes)
-                           #t))]
-             [respond (lambda (request-msg-bytes)
-                        (print-state "Sending message")
-                        (send-response response-socket request-msg-bytes handler)
-                        (sent #t))]
-             [sent (lambda (responded)
-                     (if (eqv? responded #t)
-                         (print-state "Message Sent")
-                         (error 'mongrel2 "message failed to be sent")))]
-             [stop (lambda ()
-                     (print-state "Stopping")
-                     (zmq:socket-close! request-socket)
-                     (zmq:socket-close! response-socket)
-                     (stopped))]
-             [stopped (lambda ()
-                        (print-state "Mongrel2 Handler has stopped"))])
-      (listening #t)))
+  (define (mongrel2-automata request-socket response-socket handler verbose)
+    (let ([print-state (log-state v)])
+      (letrec ([listening (lambda (listen)
+                            (print-state "Listening")
+                            (let listener ([listening listen])
+                              (if (eqv? listening #f)
+                                  (stop)
+                                  (listener (received)))))]
+               [received (lambda ()
+                           (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
+                             (print-state "Recieved message")
+                             (respond request-msg-bytes)
+                             #t))]
+               [respond (lambda (request-msg-bytes)
+                          (print-state "Sending message")
+                          (send-response response-socket request-msg-bytes handler)
+                          (sent #t))]
+               [sent (lambda (responded)
+                       (if (eqv? responded #t)
+                           (print-state "Message Sent")
+                           (error 'mongrel2 "message failed to be sent")))]
+               [stop (lambda ()
+                       (print-state "Stopping")
+                       (zmq:socket-close! request-socket)
+                       (zmq:socket-close! response-socket)
+                       (stopped))]
+               [stopped (lambda ()
+                          (print-state "Mongrel2 Handler has stopped"))])
+        (listening #t))))
 
   (define (mongrel2-zmq-socket-connect! context type endpoint uuid)
     (let ([socket (zmq:socket context type)]
