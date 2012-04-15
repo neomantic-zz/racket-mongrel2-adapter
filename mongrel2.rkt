@@ -34,6 +34,7 @@
   
   (define (mongrel2-automata request-socket response-socket handler verbose)
     (let ([print-state (log-state v)])
+    (let ([print-state (log-state verbose)])
       (letrec ([listening (lambda (listen)
                             (print-state "Listening")
                             (let listener ([listening listen])
