@@ -9,30 +9,28 @@
   (provide run-mongrel2-handler)
 
   (define (run-mongrel2-handler request-endpoint response-endpoint response-uuid handler [verbose #f] [request-uuid #""])
-    (call-with-zmq-context (lambda (context)
-                             (call-with-mongrel2-sockets
-                              context
-                              request-endpoint
-                              response-endpoint
-                              response-uuid
-                              request-uuid
-                              (lambda (request-socket response-socket)
-                                (mongrel2-automata
-                                 request-socket
-                                 response-socket
-                                 handler
-                                 (log-state verbose)))))))
+    (call-with-mongrel2-sockets request-endpoint
+                                response-endpoint
+                                response-uuid
+                                request-uuid
+                                (lambda (request-socket response-socket)
+                                  (mongrel2-automata
+                                   request-socket
+                                   response-socket
+                                   handler
+                                   (log-state verbose)))))
 
   (define (call-with-zmq-context proc [number-of-threads 1])
     (proc (zmq:context number-of-threads)))
   
-  (define (call-with-mongrel2-sockets context request-endpoint response-endpoint response-uuid request-uuid proc) 
-    (call-with-values
-        (lambda ()
-          (values
-           (mongrel2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)
-           (mongrel2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)))
-      proc))
+  (define (call-with-mongrel2-sockets request-endpoint response-endpoint response-uuid request-uuid proc) 
+    (call-with-zmq-context (lambda (context)
+                             (call-with-values
+                                 (lambda ()
+                                   (values
+                                    (mongrel2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)
+                                    (mongrel2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)))
+                               proc))))
   
     (define (mongrel2-automata request-socket response-socket handler [print-state (log-state #f)])
     (letrec ([listening (lambda (listen)
