@@ -5,8 +5,8 @@
 (require (planet zitterbewegung/uuid-v4:2:0/uuid-v4))
 
 (run-mongrel2-handler
- #:recv-endpoint "tcp://127.0.0.1:9997"
- #:send-endpoint "tcp://127.0.0.1:9996"
+ #:recv-spec "tcp://127.0.0.1:9997"
+ #:send-spec "tcp://127.0.0.1:9996"
  #:send-uuid (string->bytes/utf-8 (symbol->string (make-uuid)))
  #:handler (lambda (headers request-body)
             (display headers)
