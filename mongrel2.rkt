@@ -16,6 +16,27 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;
 
+;;;;;
+;; Below is an example of how to use this library, if 
+;; this handler is in the same directory as the mongrel2.rkt
+;; source code.  Currently, the mongrel2 handler must be setup
+;; to deliver messages using the tnetstring protocol
+;;
+;; #lang racket
+;; (require "mongrel2.rkt")
+;; (require (planet zitterbewegung/uuid-v4:2:0/uuid-v4))
+;; (run-mongrel2-handler
+;;  #:recv-spec "tcp://127.0.0.1:9997"
+;;  #:send-spec "tcp://127.0.0.1:9996"
+;;  #:send-uuid (symbol->string (make-uuid))
+;;  #:handler (lambda (headers request-body)
+;;             (display headers)
+;;             (display request-body)
+;;             #" HTTP/1.1 200 OK\r\nContent-Type: text/html;charset=utf-8\r\nContent-Length: 5\r\n\r\nHello\n")
+;;  #:verbose #t)
+;;
+;;;;;
+
 (module mongrel2 racket/base
  
   (require ffi/unsafe)
