@@ -9,31 +9,30 @@
   (provide run-mongrel2-handler)
 
   (define (run-mongrel2-handler request-endpoint response-endpoint response-uuid handler [verbose #f] [request-uuid #""])
-    (call-with-mongrel2-sockets request-endpoint
-                                response-endpoint
-                                response-uuid
-                                request-uuid
-                                (lambda (request-socket response-socket)
-                                  (mongrel2-automata
-                                   request-socket
-                                   response-socket
-                                   handler
-                                   verbose))))
+    (call-with-m2-sockets request-endpoint
+                          response-endpoint
+                          response-uuid
+                          request-uuid
+                          (lambda (request-socket response-socket)
+                            (m2-automata
+                             request-socket
+                             response-socket
+                             handler
+                             verbose))))
 
   (define (call-with-zmq-context proc [number-of-threads 1])
     (proc (zmq:context number-of-threads)))
   
-  (define (call-with-mongrel2-sockets request-endpoint response-endpoint response-uuid request-uuid proc) 
+  (define (call-with-m2-sockets request-endpoint response-endpoint response-uuid request-uuid proc) 
     (call-with-zmq-context (lambda (context)
                              (call-with-values
                                  (lambda ()
                                    (values
-                                    (mongrel2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)
-                                    (mongrel2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)))
+                                    (m2-zmq-socket-connect! context 'PULL request-endpoint request-uuid)
+                                    (m2-zmq-socket-connect! context 'PUB response-endpoint response-uuid)))
                                proc))))
   
-  (define (mongrel2-automata request-socket response-socket handler verbose)
-    (let ([print-state (log-state v)])
+  (define (m2-automata request-socket response-socket handler verbose)
     (let ([print-state (log-state verbose)])
       (letrec ([listening (lambda (listen)
                             (print-state "Listening")
@@ -63,13 +62,13 @@
                           (print-state "Mongrel2 Handler has stopped"))])
         (listening #t))))
 
-  (define (mongrel2-zmq-socket-connect! context type endpoint uuid)
+  (define (m2-zmq-socket-connect! context type endpoint uuid)
     (let ([socket (zmq:socket context type)]
           [uuid-is-empty (eqv? (bytes-length uuid) 0)])
       (zmq:socket-connect! socket endpoint)
       (cond
        [(and (eqv? type 'PUB) uuid-is-empty)
-        (error 'mongrel2 "A response uuid is required")]
+        (error 'm2 "A response uuid is required")]
        [(eq? uuid-is-empty #f)
         (zmq:set-socket-option! socket 'IDENTITY uuid)])
       socket))
@@ -84,20 +83,20 @@
     (call-with-input-bytes
      request-msg-bytes
      (lambda (port)
-       (let* ([headers-list (read-mongrel2-header-msg port)]
+       (let* ([headers-list (read-m2-header-msg port)]
 	      [headers (read-http-headers port)]
 	      [request-body (read-http-body port)]
 	      [response-list (handler headers request-body)])
-	 (zmq:socket-send! socket (make-mongrel2-msg headers-list response-list))))))
+	 (zmq:socket-send! socket (make-m2-msg headers-list response-list))))))
 
-  (define (make-mongrel2-msg mongrel2-header-list response)
+  (define (make-m2-msg m2-header-list response)
     (bytes-append
-     (car mongrel2-header-list)
+     (car m2-header-list)
      #" "
-     (tnstr:value->bytes/tnetstring (car (cdr mongrel2-header-list)))
+     (tnstr:value->bytes/tnetstring (car (cdr m2-header-list)))
      response))
   
-  (define (parse-mongrel2-msg-part port)
+  (define (parse-m2-msg-part port)
     (let loop ([msg-fragment #""])
       (let ([peek (peek-bytes 1 0 port)])
         (if (eof-object? peek)
@@ -109,16 +108,16 @@
                 (loop (bytes-append msg-fragment (read-bytes 1 port))))))))
 
   ;; make sure mongrel2 sent the correct information
-  (define (read-mongrel2-header-msg port)
-    (let* ([mongrel2-uuid-bytes (parse-mongrel2-msg-part port)]
-           [source-id-bytes (parse-mongrel2-msg-part port)]
-           [request-path-bytes (parse-mongrel2-msg-part port)])
+  (define (read-m2-header-msg port)
+    (let* ([m2-uuid-bytes (parse-m2-msg-part port)]
+           [source-id-bytes (parse-m2-msg-part port)]
+           [request-path-bytes (parse-m2-msg-part port)])
       (cond
-       [(not (> (bytes-length mongrel2-uuid-bytes) 0)) (error 'read-mongrel2-request "missing mongrel2 server uuid")]
+       [(not (> (bytes-length m2-uuid-bytes) 0)) (error 'read-mongrel2-request "missing mongrel2 server uuid")]
        [(not (> (bytes-length source-id-bytes) 0)) (error 'read-mongrel2-request "missing source id")]
        [(not (> (bytes-length request-path-bytes) 0)) (error 'read-mongrel2-request "missing path")]
        (else
-        (list mongrel2-uuid-bytes
+        (list m2-uuid-bytes
               source-id-bytes
               request-path-bytes)))))
 
