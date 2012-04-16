@@ -43,8 +43,15 @@
   (require (prefix-in zmq: (planet jaymccarthy/zeromq:2:1/zmq)))
   (require (prefix-in tnstr: (planet gerard/tnetstrings:1:0)))
 
-  (provide run-mongrel2-handler)
+  (provide run-mongrel2-handler
+           (struct-out mongrel2-msg))
 
+  (struct mongrel2-msg
+          (sender-uuid
+          source-id
+          request-path
+          http-request))
+  
   (define (run-mongrel2-handler #:recv-spec request-endpoint
                                 #:send-spec response-endpoint
                                 #:send-uuid response-uuid
@@ -137,7 +144,7 @@
             (error 'read-mongrel2-msg "aborting: hit eof")
             (if (equal? peek #" ")
                 (begin
-                  (read-bytes 1 port);;increment past the next space
+                  (read-bytes 1 port);;increment past the next space, since we don't need it 
                   msg-fragment)
                 (loop (bytes-append msg-fragment (read-bytes 1 port))))))))
 
