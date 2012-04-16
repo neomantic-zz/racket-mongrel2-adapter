@@ -100,7 +100,11 @@
                              #t))]
                [respond (lambda (request-msg-bytes)
                           (print-state "Sending message")
-                          (send-m2-response response-socket request-msg-bytes handler)
+                          (call-with-input-bytes
+                           request-msg-bytes
+                           (lambda (port)
+                             (zmq:socket-send! response-socket
+                                               (handler (read-m2-request port)))))
                           (sent #t))]
                [sent (lambda (responded)
                        (if (eqv? responded #t)
@@ -121,23 +125,7 @@
           (begin (display message) (newline))
           #f)))
   
-  (define (send-m2-response socket request-msg-bytes handler)
-    (call-with-input-bytes
-     request-msg-bytes
-     (lambda (port)
-       (zmq:socket-send! socket
-                         (make-m2-msg
-                          (read-m2-header-msg port)
-                          (handler(port->bytes port)))))))
-
-  (define (make-m2-msg m2-header-list response-bytes)
-    (bytes-append
-     (car m2-header-list)
-     #" "
-     (tnstr:value->bytes/tnetstring (car (cdr m2-header-list)))
-     response-bytes))
-  
-  (define (parse-m2-msg-part port)
+  (define (parse-m2-request-header port)
     (let loop ([msg-fragment #""])
       (let ([peek (peek-bytes 1 0 port)])
         (if (eof-object? peek)
@@ -149,16 +137,18 @@
                 (loop (bytes-append msg-fragment (read-bytes 1 port))))))))
 
   ;; make sure mongrel2 sent the correct information
-  (define (read-m2-header-msg port)
-    (let* ([m2-uuid-bytes (parse-m2-msg-part port)]
-           [source-id-bytes (parse-m2-msg-part port)]
-           [request-path-bytes (parse-m2-msg-part port)])
+  (define (read-m2-request port)
+    (let* ([m2-uuid-bytes (parse-m2-request-header port)]
+           [source-id-bytes (parse-m2-request-header port)]
+           [request-path-bytes (parse-m2-request-header port)])
       (cond
        [(not (> (bytes-length m2-uuid-bytes) 0)) (error 'read-mongrel2-request "missing mongrel2 server uuid")]
        [(not (> (bytes-length source-id-bytes) 0)) (error 'read-mongrel2-request "missing source id")]
        [(not (> (bytes-length request-path-bytes) 0)) (error 'read-mongrel2-request "missing path")]
        (else
-        (list m2-uuid-bytes
-              source-id-bytes
-              request-path-bytes)))))
+        (mongrel2-msg
+         m2-uuid-bytes
+         source-id-bytes
+         request-path-bytes
+         (port->bytes port))))))
   )
