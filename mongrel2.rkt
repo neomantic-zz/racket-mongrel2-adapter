@@ -70,61 +70,61 @@
                            response-uuid
                            request-uuid
                            (λ (request-socket response-socket)
-                             (m2-automata
-                              request-socket
-                              response-socket
-                              handler
-                              verbose))))
+                              (m2-automata
+                               request-socket
+                               response-socket
+                               handler
+                               verbose))))
   
   (define (call-with-zmq-sockets request-endpoint response-endpoint response-uuid request-uuid proc)
     (let ([context (zmq:context 1)])
       (call-with-values (λ ()
-                          (if (eq? (string-length response-uuid) 0)
-                              (error 'mongrel2-adapter "aborting: Failed to supplied the require mongrel2 response uuid")
-                              (let ([make-connect-socket (λ (type endpoint uuid)
-                                                           (let ([socket (zmq:socket context type)])
-                                                             (zmq:socket-connect! socket endpoint)
-                                                             (when (> (string-length uuid) 0)
-                                                               (zmq:set-socket-option! socket 'IDENTITY (string->bytes/latin-1 uuid)))
-                                                             socket))])
-                                (values
-                                 (make-connect-socket 'PULL request-endpoint request-uuid)
-                                 (make-connect-socket 'PUB response-endpoint response-uuid)))))
+                           (if (eq? (string-length response-uuid) 0)
+                               (error 'mongrel2-adapter "aborting: Failed to supplied the require mongrel2 response uuid")
+                               (let ([make-connect-socket (λ (type endpoint uuid)
+                                                             (let ([socket (zmq:socket context type)])
+                                                               (zmq:socket-connect! socket endpoint)
+                                                               (when (> (string-length uuid) 0)
+                                                                 (zmq:set-socket-option! socket 'IDENTITY (string->bytes/latin-1 uuid)))
+                                                               socket))])
+                                 (values
+                                  (make-connect-socket 'PULL request-endpoint request-uuid)
+                                  (make-connect-socket 'PUB response-endpoint response-uuid)))))
         proc)))
   
   (define (m2-automata request-socket response-socket handler verbose)
     (let ([print-state (log-state verbose)])
       (letrec ([listening (λ (listen)
-                            (print-state "Listening")
-                            (let listener ([listening listen])
-                              (if (eqv? listening #f)
-                                  (stop)
-                                  (listener (received)))))]
+                             (print-state "Listening")
+                             (let listener ([listening listen])
+                               (if (eqv? listening #f)
+                                   (stop)
+                                   (listener (received)))))]
                [received (λ ()
-                           (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
-                             (print-state "Recieved message")
-                             (respond request-msg-bytes)
-                             #t))]
+                            (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
+                              (print-state "Recieved message")
+                              (respond request-msg-bytes)
+                              #t))]
                [respond (λ (request-msg-bytes)
-                          (print-state "Sending message")
-                          (call-with-input-bytes
-                           request-msg-bytes
-                           (λ (port)
-                             (zmq:socket-send!
-                              response-socket
-                              (format-mongrel2-response (handler (read-m2-request port))))
-                             (sent #t))))]
+                           (print-state "Sending message")
+                           (call-with-input-bytes
+                            request-msg-bytes
+                            (λ (port)
+                               (zmq:socket-send!
+                                response-socket
+                                (format-mongrel2-response (handler (read-m2-request port))))
+                               (sent #t))))]
                [sent (λ (responded)
-                       (if (eqv? responded #t)
-                           (print-state "Message Sent")
-                           (error 'mongrel2 "message failed to be sent")))]
+                        (if (eqv? responded #t)
+                            (print-state "Message Sent")
+                            (error 'mongrel2 "message failed to be sent")))]
                [stop (λ ()
-                       (print-state "Stopping")
-                       (zmq:socket-close! request-socket)
-                       (zmq:socket-close! response-socket)
-                       (stopped))]
+                        (print-state "Stopping")
+                        (zmq:socket-close! request-socket)
+                        (zmq:socket-close! response-socket)
+                        (stopped))]
                [stopped (λ ()
-                          (print-state "Mongrel2 Handler has stopped"))])
+                           (print-state "Mongrel2 Handler has stopped"))])
         (listening #t))))
 
     
@@ -138,7 +138,7 @@
   
   (define (format-response-source-ids list-of-ids)
     (let ([source-bytes (foldl (λ (source-id results) 
-                                 (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
+                                  (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
                                (string->bytes/latin-1 (number->string (car list-of-ids)))
                                (cdr list-of-ids))]) ;;the λ just command separated byte-string
       (bytes-append
@@ -149,9 +149,9 @@
   
   (define (log-state enable)
     (λ (message)
-      (if (eq? enable #t)
-          (begin (display message) (newline))
-          #f)))
+       (if (eq? enable #t)
+           (begin (display message) (newline))
+           #f)))
   
   (define (parse-m2-request-header port)
     (let loop ([msg-fragment #""])
