@@ -172,11 +172,11 @@
                   msg-fragment)
                 (loop (bytes-append msg-fragment (read-bytes 1 port))))))))
 
-  ;; make sure mongrel2 sent the correct information
   (define (read-m2-request port)
     (let* ([m2-uuid-bytes (parse-m2-request-header port)]
            [source-id-bytes (parse-m2-request-header port)]
            [request-path-bytes (parse-m2-request-header port)])
+      ;; make sure mongrel2 sent the correct information
       (cond
        [(not (> (bytes-length m2-uuid-bytes) 0)) (error 'read-mongrel2-request "missing mongrel2 server uuid")]
        [(not (> (bytes-length source-id-bytes) 0)) (error 'read-mongrel2-request "missing source id")]
