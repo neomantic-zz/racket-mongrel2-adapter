@@ -157,9 +157,8 @@
   
   (define (log-state enable)
     (λ (message)
-       (if (eq? enable #t)
-           (begin (display message) (newline))
-           #f)))
+       (when (eq? enable #t)
+         (begin (display message) (newline)))))
   
   (define (parse-m2-request-header port)
     (let loop ([msg-fragment #""])
