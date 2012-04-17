@@ -29,7 +29,7 @@
 ;;  #:recv-spec "tcp://127.0.0.1:9997"
 ;;  #:send-spec "tcp://127.0.0.1:9996"
 ;;  #:send-uuid (symbol->string (make-uuid))
-;;  #:handler (lambda (mongrel2-bytes-msg)
+;;  #:handler (λ (mongrel2-bytes-msg)
 ;;             (display mongrel2-msg)
 ;;             #" HTTP/1.1 200 OK\r\nContent-Type: text/html;charset=utf-8\r\nContent-Length: 5\r\n\r\nHello\n")
 ;;  #:verbose #t)
@@ -69,7 +69,7 @@
                            response-endpoint
                            response-uuid
                            request-uuid
-                           (lambda (request-socket response-socket)
+                           (λ (request-socket response-socket)
                              (m2-automata
                               request-socket
                               response-socket
@@ -78,10 +78,10 @@
   
   (define (call-with-zmq-sockets request-endpoint response-endpoint response-uuid request-uuid proc)
     (let ([context (zmq:context 1)])
-      (call-with-values (lambda ()
+      (call-with-values (λ ()
                           (if (eq? (string-length response-uuid) 0)
                               (error 'mongrel2-adapter "aborting: Failed to supplied the require mongrel2 response uuid")
-                              (let ([make-connect-socket (lambda (type endpoint uuid)
+                              (let ([make-connect-socket (λ (type endpoint uuid)
                                                            (let ([socket (zmq:socket context type)])
                                                              (zmq:socket-connect! socket endpoint)
                                                              (when (> (string-length uuid) 0)
@@ -94,36 +94,36 @@
   
   (define (m2-automata request-socket response-socket handler verbose)
     (let ([print-state (log-state verbose)])
-      (letrec ([listening (lambda (listen)
+      (letrec ([listening (λ (listen)
                             (print-state "Listening")
                             (let listener ([listening listen])
                               (if (eqv? listening #f)
                                   (stop)
                                   (listener (received)))))]
-               [received (lambda ()
+               [received (λ ()
                            (let ([request-msg-bytes (zmq:socket-recv! request-socket)])
                              (print-state "Recieved message")
                              (respond request-msg-bytes)
                              #t))]
-               [respond (lambda (request-msg-bytes)
+               [respond (λ (request-msg-bytes)
                           (print-state "Sending message")
                           (call-with-input-bytes
                            request-msg-bytes
-                           (lambda (port)
+                           (λ (port)
                              (zmq:socket-send!
                               response-socket
                               (format-mongrel2-response (handler (read-m2-request port))))
                              (sent #t))))]
-               [sent (lambda (responded)
+               [sent (λ (responded)
                        (if (eqv? responded #t)
                            (print-state "Message Sent")
                            (error 'mongrel2 "message failed to be sent")))]
-               [stop (lambda ()
+               [stop (λ ()
                        (print-state "Stopping")
                        (zmq:socket-close! request-socket)
                        (zmq:socket-close! response-socket)
                        (stopped))]
-               [stopped (lambda ()
+               [stopped (λ ()
                           (print-state "Mongrel2 Handler has stopped"))])
         (listening #t))))
 
@@ -137,10 +137,10 @@
      (string->bytes/utf-8 (mongrel2-response-response m2-response))))
   
   (define (format-response-source-ids list-of-ids)
-    (let ([source-bytes (foldl (lambda (source-id results) 
+    (let ([source-bytes (foldl (λ (source-id results) 
                                  (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
                                (string->bytes/latin-1 (number->string (car list-of-ids)))
-                               (cdr list-of-ids))]) ;;the lambda just command separated byte-string
+                               (cdr list-of-ids))]) ;;the λ just command separated byte-string
       (bytes-append
        (string->bytes/latin-1 (number->string (bytes-length source-bytes)))
        #":"
@@ -148,7 +148,7 @@
        #",")))
   
   (define (log-state enable)
-    (lambda (message)
+    (λ (message)
       (if (eq? enable #t)
           (begin (display message) (newline))
           #f)))
