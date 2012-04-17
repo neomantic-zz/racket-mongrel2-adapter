@@ -143,8 +143,9 @@
      (format-response-source-ids (mongrel2-response-source-ids m2-response))
      #" "
      (string->bytes/utf-8 (mongrel2-response-response m2-response))))
-  
+
   (define (format-response-source-ids list-of-ids)
+    ;; returns a netstring byte string containing a comma delimited list of source ids
     (let ([source-bytes (foldl (λ (source-id results) 
                                   (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
                                (string->bytes/latin-1 (number->string (car list-of-ids)))
