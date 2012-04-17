@@ -44,13 +44,20 @@
   (require (prefix-in tnstr: (planet gerard/tnetstrings:1:0)))
 
   (provide run-mongrel2-handler
-           (struct-out mongrel2-msg))
+           (struct-out mongrel2-request)
+           (struct-out mongrel2-response))
 
-  (struct mongrel2-msg
+  (struct mongrel2-request
           (sender-uuid
           source-id
           request-path
           http-request))
+
+  (struct mongrel2-response
+          (sender-uuid
+           source-ids
+           response))
+  
   
   (define (run-mongrel2-handler #:recv-spec request-endpoint
                                 #:send-spec response-endpoint
@@ -103,9 +110,10 @@
                           (call-with-input-bytes
                            request-msg-bytes
                            (lambda (port)
-                             (zmq:socket-send! response-socket
-                                               (handler (read-m2-request port)))))
-                          (sent #t))]
+                             (zmq:socket-send!
+                              response-socket
+                              (format-mongrel2-response (handler (read-m2-request port))))
+                             (sent #t))))]
                [sent (lambda (responded)
                        (if (eqv? responded #t)
                            (print-state "Message Sent")
@@ -118,6 +126,26 @@
                [stopped (lambda ()
                           (print-state "Mongrel2 Handler has stopped"))])
         (listening #t))))
+
+    
+  (define (format-mongrel2-response m2-response)
+    (bytes-append
+     (string->bytes/latin-1 (mongrel2-response-sender-uuid m2-response))
+     #" "
+     (format-response-source-ids (mongrel2-response-source-ids m2-response))
+     #" "
+     (string->bytes/utf-8 (mongrel2-response-response m2-response))))
+  
+  (define (format-response-source-ids list-of-ids)
+    (let ([source-bytes (foldl (lambda (source-id results) 
+                                 (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
+                               (string->bytes/latin-1 (number->string (car list-of-ids)))
+                               (cdr list-of-ids))]) ;;the lambda just command separated byte-string
+      (bytes-append
+       (string->bytes/latin-1 (number->string (bytes-length source-bytes)))
+       #":"
+       source-bytes
+       #",")))
   
   (define (log-state enable)
     (lambda (message)
@@ -146,9 +174,9 @@
        [(not (> (bytes-length source-id-bytes) 0)) (error 'read-mongrel2-request "missing source id")]
        [(not (> (bytes-length request-path-bytes) 0)) (error 'read-mongrel2-request "missing path")]
        (else
-        (mongrel2-msg
-         m2-uuid-bytes
-         source-id-bytes
+        (mongrel2-request
+         (string->immutable-string (bytes->string/latin-1 m2-uuid-bytes))
+         (string->number (bytes->string/latin-1 source-id-bytes))
          request-path-bytes
          (port->bytes port))))))
   )
