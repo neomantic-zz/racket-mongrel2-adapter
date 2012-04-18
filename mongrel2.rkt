@@ -59,8 +59,7 @@
           (sender-uuid
            source-ids
            response))
-  
-  
+
   (define (run-mongrel2-handler #:recv-spec request-endpoint
                                 #:send-spec response-endpoint
                                 #:send-uuid response-uuid
@@ -81,7 +80,7 @@
   (define (call-with-zmq-sockets request-endpoint response-endpoint response-uuid request-uuid proc)
     (let ([context (zmq:context 1)])
       (call-with-values (λ ()
-                           (if (eq? (string-length response-uuid) 0)
+                           (if (= (string-length response-uuid) 0)
                                (error 'mongrel2-adapter "aborting: Failed to supplied the require mongrel2 response uuid")
                                (let ([make-connect-socket (λ (type endpoint uuid)
                                                              (let ([socket (zmq:socket context type)])
@@ -146,7 +145,9 @@
 
   (define (format-response-source-ids list-of-ids)
     ;; returns a netstring byte string containing a comma delimited list of source ids
-    (let ([source-bytes (foldl (λ (source-id results) 
+    (let ([source-bytes (foldl (λ (source-id results)
+                                  (when (not (valid-source-id? source-id))
+                                    (error 'mongrel2-adapter "a source id must be an integer between 1 and 128"))
                                   (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
                                (string->bytes/latin-1 (number->string (car list-of-ids)))
                                (cdr list-of-ids))]) ;;the λ just command separated byte-string
@@ -155,6 +156,11 @@
        #":"
        source-bytes
        #",")))
+  (define (valid-source-id? id)
+    (cond
+     [(not (integer? id)) #f]
+     [(not (and (> id 0) (<= id 128))) #f]
+     [else #t]))
   
   (define (log-state enable)
     (λ (message)
