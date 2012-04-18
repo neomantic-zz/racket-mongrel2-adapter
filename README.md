@@ -19,6 +19,7 @@ testing, the current implementation was designed to make the process of connecti
 to and handling mongrel2 requests and responses more explicit.
 
 # Dependencies
+* mongrel2 (tested using mongrel2 1.7.5)
 * 0mq library
 * (require (planet jaymccarthy/zeromq:2:1/zmq)))
 * (require (planet gerard/tnetstrings:1:0)))
