@@ -150,7 +150,7 @@
                                     (error 'mongrel2-adapter "a source id must be an integer between 1 and 128"))
                                   (bytes-append results #", " (string->bytes/latin-1 (number->string source-id))))
                                (string->bytes/latin-1 (number->string (car list-of-ids)))
-                               (cdr list-of-ids))]) ;;the λ just command separated byte-string
+                               (cdr list-of-ids))]) ;; foldl creates the comma delimited bytstring
       (bytes-append
        (string->bytes/latin-1 (number->string (bytes-length source-bytes)))
        #":"
