@@ -43,7 +43,6 @@
   (require ffi/unsafe)
   (require racket/port)
   (require (prefix-in zmq: (planet jaymccarthy/zeromq:2:1/zmq)))
-  (require (prefix-in tnstr: (planet gerard/tnetstrings:1:0)))
 
   (provide run-mongrel2-handler
            (struct-out mongrel2-request)
