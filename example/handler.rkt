@@ -1,7 +1,7 @@
 #lang racket
 
 (require racket/date)
-(require "../mongrel2.rkt")
+(require "../mongrel2-adapter.rkt")
 
 (require (planet zitterbewegung/uuid-v4:2:0/uuid-v4))
 
