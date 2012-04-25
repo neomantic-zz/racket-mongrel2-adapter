@@ -3,11 +3,11 @@
 A [mongrel2](http://mongrel2.org) adapter written in [Racket Scheme](http://racket-lang.org/).
 
 ## Design Goals
-This mongrel2 Racket adapter facilates the communication between a mongrel2 webserver
-and a mongrel2 handler which follows an API describe below. It does not attempt to craft or
+This mongrel2 Racket adapter facilitates the communication between a mongrel2 webserver
+and a mongrel2 handler which follows the API described below. It does not attempt to craft or
 manipulate either the http request/response headers or the http request/response body between
 the handler and the adapter.  Processing a http request and creating a valid
-http response is delegated to and the sole responsibility the handler.
+http response is delegated to and the sole responsibility of the handler.
 
 ## Dependencies
 * mongrel2 (tested using mongrel2 1.7.5)
