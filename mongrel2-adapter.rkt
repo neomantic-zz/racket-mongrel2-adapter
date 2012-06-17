@@ -131,10 +131,8 @@
   (define (format-mongrel2-response m2-response)
     (when (= (string-length (mongrel2-response-sender-uuid m2-response)) 0)
       (error 'mongrel2-adapter "aborting: response message is missing a server identifier"))
-
     (when (= (length (mongrel2-response-source-ids m2-response)) 0)
       (error 'mongrel2-adapter "aborting: response message is missing a source id"))
-
     (bytes-append
      (string->bytes/latin-1 (mongrel2-response-sender-uuid m2-response))
      #" "
