@@ -106,14 +106,12 @@
                               (respond request-msg-bytes)
                               #t))]
                [respond (λ (request-msg-bytes)
-                           (print-state "Sending message")
-                           (call-with-input-bytes
-                            request-msg-bytes
-                            (λ (port)
-                               (zmq:socket-send!
-                                response-socket
-                                (format-mongrel2-response (handler (read-m2-request port))))
-                               (sent #t))))]
+                           (let ([port (open-input-bytes request-msg-bytes)])
+                             (zmq:socket-send!
+                                 response-socket
+                                 (format-mongrel2-response (handler (read-m2-request port))))
+                             (close-input-port port))
+                           (sent #t))]
                [sent (λ (responded)
                         (if (eqv? responded #t)
                             (print-state "Message Sent")
