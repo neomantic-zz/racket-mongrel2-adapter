@@ -112,10 +112,8 @@
                                  (format-mongrel2-response (handler (read-m2-request port))))
                              (close-input-port port))
                            (sent #t))]
-               [sent (λ (responded)
-                        (if (eqv? responded #t)
-                            (print-state "Message Sent")
-                            (error 'mongrel2 "message failed to be sent")))]
+               [sent (λ ()
+                        (print-state "Message Sent"))]
                [stop (λ ()
                         (print-state "Stopping")
                         (zmq:socket-close! request-socket)
