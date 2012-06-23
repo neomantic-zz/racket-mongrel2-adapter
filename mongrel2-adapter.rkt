@@ -111,7 +111,7 @@
                                  response-socket
                                  (format-mongrel2-response (handler (read-m2-request port))))
                              (close-input-port port))
-                           (sent #t))]
+                           (sent))]
                [sent (λ ()
                         (print-state "Message Sent"))]
                [stop (λ ()
